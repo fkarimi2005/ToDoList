@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"ToDoList/db"
-	"ToDoList/errs"
-	"ToDoList/model"
+	"ToDoList/internal/db"
+	"ToDoList/internal/errs"
+	"ToDoList/internal/model"
+	"ToDoList/logger"
 	"ToDoList/utils"
 )
 
@@ -15,8 +16,11 @@ func GetUserByUserNameAndPassword(username string, password string) (model.User,
         FROM users
         WHERE deleted_at IS NULL AND username = $1 AND password = $2
     `, username, password)
+	if err != nil {
+		logger.Error.Printf("[repository] GetUserByUserNameAndPassword(): error during getting from database: %s", err.Error())
+	}
 
-	return user, err
+	return user, TranslateError(err)
 }
 
 func GetByUsername(username string) (model.User, error) {
@@ -29,29 +33,45 @@ func GetByUsername(username string) (model.User, error) {
 		FROM users
 		WHERE deleted_at IS NULL AND username = $1
 	`, username)
-	return user, err
+	if err != nil {
+		logger.Error.Printf("[repository]  GetByUsername(): error during getting from  database: %s", err.Error())
+	}
+	return user, TranslateError(err)
 }
 
 func CreateUser(u model.User, role string) error {
+	u.Password = utils.GenerateHash(u.Password)
+
 	var err error
-	if role == "admin" {
-		_, err = db.GetDBConn().Exec(`INSERT INTO users (full_name, username, password, user_role)
-	VALUES ($1, $2, $3, $4)`, u.FullName, u.Username, u.Password, u.UserRole)
+	if u.UserRole == "" {
+		// не передаём user_role => DEFAULT сработает
+		_, err = db.GetDBConn().Exec(`
+			INSERT INTO users (full_name, username, password)
+			VALUES ($1, $2, $3)
+		`, u.FullName, u.Username, u.Password)
 	} else {
-		return errs.ErrNotAccess
+		_, err = db.GetDBConn().Exec(`
+			INSERT INTO users (full_name, username, password, user_role)
+			VALUES ($1, $2, $3, $4)
+		`, u.FullName, u.Username, u.Password, u.UserRole)
 	}
-	return err
+
+	if err != nil {
+		logger.Error.Printf("CreateUser(): %v", err)
+		return TranslateError(err)
+	}
+	return nil
 }
 func DeleteUser(userIDToDelete, requesterID int, role string) error {
-	// Если это обычный пользователь — он может удалить только СЕБЯ
+
 	if role != "admin" && userIDToDelete != requesterID {
 		return errs.ErrNotAccess
 	}
 
-	// Удаление пользователя
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := db.GetDBConn().Exec(query, userIDToDelete)
 	if err != nil {
+		logger.Error.Printf("[repository]  DeleteUser(): error during deleting user from database %s", err.Error())
 		return TranslateError(err)
 	}
 
@@ -88,7 +108,12 @@ order by  id asc `)
     where id = $1
 order by  id asc `, userID)
 	}
-	return users, err
+	if err != nil {
+		logger.Error.Printf("[repository]  GetAllUsers(): error during getting All user from database %s", err.Error())
+
+	}
+
+	return users, TranslateError(err)
 }
 func UpdateUser(user model.User, updateToID, userID int, role string) error {
 	user.Password = utils.GenerateHash(user.Password)
@@ -118,8 +143,12 @@ func UpdateUser(user model.User, updateToID, userID int, role string) error {
 			return errs.ErrNotAccess
 		}
 	}
+	if err != nil {
+		logger.Error.Printf("[repository]  UpdateUser(): error during updating  user  from database %s", err.Error())
 
-	return err
+	}
+
+	return TranslateError(err)
 }
 func CheckUsersExists(ID int) error {
 	var userID int

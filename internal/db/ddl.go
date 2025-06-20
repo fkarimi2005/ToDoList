@@ -1,7 +1,5 @@
 package db
 
-import "ToDoList/utils"
-
 func InitMigrations() error {
 	userTableQuery := `
 CREATE TABLE IF NOT EXISTS users (
@@ -33,20 +31,21 @@ CREATE TABLE IF NOT EXISTS users (
 	if _, err := db.Exec(taskTableQuery); err != nil {
 		return err
 	}
-	if err := Seed(); err != nil {
-		return err
-	}
+	//if err := Seed(); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
-func Seed() error {
-	password := utils.GenerateHash("mypassword")
-	_, err := db.Exec(
-		`INSERT INTO users (full_name, username, password)
-         VALUES ($1, $2, $3)`,
-		"Salmon Fors",
-		"salmon77",
-		password,
-	)
-	return err
-}
+
+//func Seed() error {
+//	password := utils.GenerateHash("mypassword")
+//	_, err := db.Exec(
+//		`INSERT INTO users (full_name, username, password)
+//         VALUES ($1, $2, $3)`,
+//		"Salmon Fors",
+//		"salmon7745",
+//		password,
+//	)
+//	return err
+//}

@@ -16,18 +16,17 @@
   },
   "app_params": {
     "server_url": "localhost",
-    "gin_mode": "realise",
+    "gin_mode": "release",
     "server_name": "ToDoList",
+    "app_version": "1.0",
     "port_run": "8089"
   },
   "postgres": {
+    "username": "postgres",
     "host": "127.0.0.1",
-    "port":"5432",
-    "user": "postgres",
+    "port": "5432",
     "database": "todolist_db"
   }
 }
 
 
-
-}

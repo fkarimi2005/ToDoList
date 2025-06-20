@@ -1,6 +1,6 @@
 package model
 
-type Confics struct {
+type Configs struct {
 	AuthParams AuthParams `json:"auth_params"`
 	LogParams  LogParams  `json:"log_params"`
 	AppParams  AppParams  `json:"app_params"`

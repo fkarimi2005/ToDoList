@@ -1,9 +1,9 @@
 package service
 
 import (
-	"ToDoList/errs"
-	"ToDoList/model"
-	"ToDoList/repository"
+	"ToDoList/internal/errs"
+	"ToDoList/internal/model"
+	"ToDoList/internal/repository"
 	"ToDoList/utils"
 
 	"errors"

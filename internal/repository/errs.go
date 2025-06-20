@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"ToDoList/errs"
+	"ToDoList/internal/errs"
 	"database/sql"
 	"errors"
 )
