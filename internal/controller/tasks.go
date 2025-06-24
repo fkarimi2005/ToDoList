@@ -18,6 +18,18 @@ func Ping(c *gin.Context) {
 	})
 }
 
+// ShowTask godoc
+// @Summary      Получить список задач
+// @Description  Возвращает все задачи текущего пользователя
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} model.Tasks
+// @Failure       401 { object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/tasks [get]
 func ShowTask(c *gin.Context) {
 	userID := c.GetInt(userIDCtx)
 	if userID == 0 {
@@ -37,6 +49,19 @@ func ShowTask(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
+// GetById godoc
+// @Summary      Получить задачу по ID
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "ID задачи"
+// @Success      200 {object} model.Tasks
+// @Security     BearerAuth
+// @Failure       400 { object} model.ErrorResponse
+// @Failure       401 { object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/tasks/{id} [get]
 func GetById(c *gin.Context) {
 	IDStr := c.Param("id")
 	ID, err := strconv.Atoi(IDStr)
@@ -64,6 +89,19 @@ func GetById(c *gin.Context) {
 	c.JSON(http.StatusOK, task)
 }
 
+// DeleteByID godoc
+// @Summary      Удалить задачу или пользователя
+// @Description  Удаляет задачу или пользователя по ID, в зависимости от параметра choice
+// @Tags         tasks
+// @Param        id path int true "ID ресурса (task или user)"
+// @Param        choice query string true "Тип удаления: task или user"
+// @Success      200 {string} string "Успешно удалено"
+// @Security     BearerAuth
+// @Failure       400 { object} model.ErrorResponse
+// @Failure      401 {object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/tasks/{id} [delete]
 func DeleteByID(c *gin.Context) {
 	userID := c.GetInt(userIDCtx)
 	if userID == 0 {
@@ -112,6 +150,20 @@ func DeleteByID(c *gin.Context) {
 	}
 }
 
+// AddTask godoc
+// @Summary      Создать задачу
+// @Description  Создаёт новую задачу для авторизованного пользователя
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        input body model.Tasks true "Данные задачи"
+// @Success      201 {object} model.Tasks
+// @Security     BearerAuth
+// @Failure       400 { object} model.ErrorResponse
+// @Failure       401 { object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/tasks [post]
 func AddTask(c *gin.Context) {
 	userID := c.GetInt(userIDCtx)
 	if userID == 0 {
@@ -138,6 +190,20 @@ func AddTask(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Task successfully added"})
 }
 
+// UpdateTask godoc
+// @Summary      Обновить задачу
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        id    path int          true  "ID задачи"
+// @Param        input body model.Tasks   true  "Новые данные"
+// @Success      200 {object} model.Tasks
+// @Security     BearerAuth
+// @Failure       400 { object} model.ErrorResponse
+// @Failure       401 { object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/tasks/{id} [put]
 func UpdateTask(c *gin.Context) {
 	IDStr := c.Param("id")
 	ID, err := strconv.Atoi(IDStr)
@@ -164,13 +230,26 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	if err := service.UpdateTask(d, ID, userID, role); err != nil {
-		HandleError(c, err)
+		HandleError(c, errs.ErrNotAccess)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task successfully updated"})
 }
 
+// SearchTask  godoc
+// @Summary      Поиск задач по подстроке в названии
+// @Description  Возвращает список задач, где название содержит указанную подстроку. Поиск зависит от роли пользователя.
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        q query string true "Подстрока для поиска в названии задачи"
+// @Success      200 {array} model.Tasks
+// @Security     BearerAuth
+// @Failure      401 {object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/tasks/ [get]
 func SearchTask(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {
@@ -198,6 +277,19 @@ func SearchTask(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
+// GetTaskByUserID godoc
+// @Summary      Получить задачу через userID
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Param        id    path int          true  "ID задачи"
+// @Success      200 {object} model.Tasks
+// @Security     BearerAuth
+// @Failure       400 { object} model.ErrorResponse
+// @Failure       401 {object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/users/{id}/tasks [get]
 func GetTasksByUserID(c *gin.Context) {
 	userID := c.GetInt(userIDCtx)
 	if userID == 0 {

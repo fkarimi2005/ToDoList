@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "ToDoList/docs"
 	"ToDoList/internal/configs"
 	"ToDoList/internal/controller"
 	"ToDoList/internal/db"
@@ -11,7 +12,19 @@ import (
 	//"ToDoList/controller/pure_rest"
 )
 
+// @title           ToDoList API
+// @version         1.0
+// @description     API для управления задачами с авторизацией
+// @host            localhost:8089
+// @BasePath        /
+// @schemes         http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
 func main() {
+
 	fmt.Println("DB password from env:", os.Getenv("DB_PASSWORD"))
 
 	if err := configs.ReadSettings(); err != nil {

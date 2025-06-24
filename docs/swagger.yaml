@@ -1,0 +1,470 @@
+basePath: /
+definitions:
+  model.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  model.Tasks:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+      user_id:
+        example: 0
+        type: integer
+    required:
+    - description
+    - title
+    type: object
+  model.User:
+    properties:
+      full_name:
+        example: Firuz Karimzoda
+        type: string
+      password:
+        example: your_password
+        type: string
+      user_role:
+        example: user
+        type: string
+      username:
+        example: firuz
+        type: string
+    type: object
+  model.UserSignIn:
+    properties:
+      password:
+        example: your_password
+        type: string
+      username:
+        example: firuz
+        type: string
+    type: object
+host: localhost:8089
+info:
+  contact: {}
+  description: API для управления задачами с авторизацией
+  title: ToDoList API
+  version: "1.0"
+paths:
+  /api/tasks:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает все задачи текущего пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Tasks'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список задач
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую задачу для авторизованного пользователя
+      parameters:
+      - description: Данные задачи
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.Tasks'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Tasks'
+        "400":
+          description: Bad Request
+          schema:
+            type: ""
+        "401":
+          description: Unauthorized
+          schema:
+            type: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать задачу
+      tags:
+      - tasks
+  /api/tasks/:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список задач, где название содержит указанную подстроку.
+        Поиск зависит от роли пользователя.
+      parameters:
+      - description: Подстрока для поиска в названии задачи
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Tasks'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Поиск задач по подстроке в названии
+      tags:
+      - tasks
+  /api/tasks/{id}:
+    delete:
+      description: Удаляет задачу или пользователя по ID, в зависимости от параметра
+        choice
+      parameters:
+      - description: ID ресурса (task или user)
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'Тип удаления: task или user'
+        in: query
+        name: choice
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Успешно удалено
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: ""
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить задачу или пользователя
+      tags:
+      - tasks
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Tasks'
+        "400":
+          description: Bad Request
+          schema:
+            type: ""
+        "401":
+          description: Unauthorized
+          schema:
+            type: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить задачу по ID
+      tags:
+      - tasks
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.Tasks'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Tasks'
+        "400":
+          description: Bad Request
+          schema:
+            type: ""
+        "401":
+          description: Unauthorized
+          schema:
+            type: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить задачу
+      tags:
+      - tasks
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех пользователей (только для администратора)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.User'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: ""
+      security:
+      - BearerAuth: []
+      summary: Получить всех пользователей
+      tags:
+      - users
+  /api/users/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет данные пользователя по ID
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: ""
+      security:
+      - BearerAuth: []
+      summary: Обновить пользователя
+      tags:
+      - users
+  /api/users/{id}/tasks:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Tasks'
+        "400":
+          description: Bad Request
+          schema:
+            type: ""
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить задачу через userID
+      tags:
+      - tasks
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя и выдача JWT
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserSignIn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: ""
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт нового пользователя
+      parameters:
+      - description: Информация о пользователе
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: ""
+      summary: Регистрация пользователя
+      tags:
+      - auth
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
