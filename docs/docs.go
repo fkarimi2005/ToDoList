@@ -15,6 +15,64 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/filter": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все задачи текущего пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Получить список задач",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "status tasks:",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Tasks"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": ""
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/tasks": {
             "get": {
                 "security": [
@@ -388,6 +446,15 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Получить всех пользователей",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "username users",
+                        "name": "username",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -512,15 +579,6 @@ const docTemplate = `{
                     "tasks"
                 ],
                 "summary": "Получить задачу через userID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID задачи",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -671,7 +729,14 @@ const docTemplate = `{
             ],
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "priority": {
+                    "type": "string",
+                    "example": "medium"
                 },
                 "title": {
                     "type": "string"
@@ -688,10 +753,6 @@ const docTemplate = `{
                 "full_name": {
                     "type": "string",
                     "example": "Firuz Karimzoda"
-                },
-                "password": {
-                    "type": "string",
-                    "example": "your_password"
                 },
                 "user_role": {
                     "type": "string",

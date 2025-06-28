@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	//"ToDoList/controller/pure_rest"
 )
 
 // @title           ToDoList API

@@ -11,6 +11,7 @@ const (
 	authorizationHeader = "Authorization"
 	userIDCtx           = "userId"
 	userRole            = "userRole"
+	userNameCtx         = "userName"
 )
 
 func checkUserAuthentication(c *gin.Context) {
@@ -41,16 +42,7 @@ func checkUserAuthentication(c *gin.Context) {
 
 	c.Set(userIDCtx, claims.UserID)
 	c.Set(userRole, claims.UserRole)
+	c.Set(userNameCtx, claims.Username)
 	c.Next()
 
 }
-
-//func MiddleOnlyAdmin(c *gin.Context) {
-//	query, err := c.Get("role")
-//	if !err || query != "admin" {
-//		c.AbortWithStatusJSON(403, gin.H{"error": "Admin role not allowed"})
-//		return
-//	}
-//	c.Next()
-//
-//}

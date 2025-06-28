@@ -5,7 +5,9 @@ import (
 	"ToDoList/internal/errs"
 	model "ToDoList/internal/model"
 	"ToDoList/logger"
+	"encoding/json"
 	"errors"
+	"time"
 )
 
 func ShowTasks(role string, userID int) ([]model.Tasks, error) {
@@ -22,10 +24,11 @@ func ShowTasks(role string, userID int) ([]model.Tasks, error) {
 				user_id,
 				title, 
 				description, 
-				created_at,
 				due_date, 
-				updated_at,
-				done
+				priority,
+				done,
+				created_at,
+				updated_at
 			FROM tasks
 			WHERE deleted_at IS NULL
 			ORDER BY task_id ASC
@@ -39,6 +42,7 @@ func ShowTasks(role string, userID int) ([]model.Tasks, error) {
 				title, 
 				description, 
 				created_at,
+				priority,
 				due_date, 
 				updated_at,
 				done
@@ -48,10 +52,226 @@ func ShowTasks(role string, userID int) ([]model.Tasks, error) {
 		`
 		err = db.GetDBConn().Select(&tasks, query, userID)
 	}
+	for i := range tasks {
+		err := json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description)
+		if err != nil {
+			logger.Error.Printf("[repository] ShowTasks(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
+	}
+	return tasks, err
+}
+
+func GetCompletedTasks(role string, userID int) ([]model.Tasks, error) {
+	var (
+		tasks []model.Tasks
+		err   error
+		query string
+	)
+
+	if role == "admin" {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL
+			AND done=true
+			order by 
+			CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query)
+	} else {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL AND user_id = $1 and done=true
+			order by 
+			CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query, userID)
+	}
+
+	for i := range tasks {
+		err = json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description)
+		if err != nil {
+			logger.Error.Printf("[repository] GetCompletedTasks(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
+	}
+
+	return tasks, nil
+}
+
+func GetInCompletedTasks(role string, userID int) ([]model.Tasks, error) {
+	var (
+		tasks []model.Tasks
+		err   error
+		query string
+	)
+
+	if role == "admin" {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL
+			AND due_date < time.Now() and done = false
+			order by 
+			CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query)
+	} else {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL AND user_id = $1 
+			and due_date < time.Now() and done=false
+			order by 
+			CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query, userID)
+	}
+
+	for i := range tasks {
+		err = json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description)
+		if err != nil {
+			logger.Error.Printf("[repository] GetInCompletedTasks(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
+	}
+
+	return tasks, nil
+}
+func GetPendingTasks(role string, userID int) ([]model.Tasks, error) {
+	var (
+		tasks []model.Tasks
+		err   error
+		query string
+	)
+
+	if role == "admin" {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL
+			  AND due_date > now()
+			  AND done = false
+			  order by 
+			CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query)
+	} else {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL
+			  AND user_id = $1
+			  AND due_date > now()
+			  AND done = false
+			  order by 
+			CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query, userID)
+	}
 
 	if err != nil {
-		logger.Error.Printf("[repository] ShowTasks(): error during getting all tasks from database: %s", err.Error())
+		logger.Error.Printf("[repository] GetPendingTasks(): error selecting tasks: %s", err.Error())
 		return nil, TranslateError(err)
+	}
+
+	for i := range tasks {
+		if err = json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description); err != nil {
+			logger.Error.Printf("[repository] GetPendingTasks(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
 	}
 
 	return tasks, nil
@@ -66,21 +286,35 @@ func GetTaskByID(TaskID, userID int, role string) (model.Tasks, error) {
 			title,
 			description,
 			created_at,
+			priority,
 			updated_at,
 			due_date,
 			done
 		FROM tasks
 		WHERE deleted_at IS NULL AND task_id = $1
+		order by 
+		CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 3
+					ELSE 4
+				END ASC,
+				due_date ASC
+		
 	`
 	err := db.GetDBConn().Get(&task, query, TaskID)
 	if err != nil {
-		logger.Error.Printf("[repository] GetTaskByID(): error during getting task by ID from database: %s", err.Error())
+		logger.Error.Printf("[repository] GetTaskByID(): error fetching task: %s", err.Error())
 		return model.Tasks{}, TranslateError(err)
 	}
-	if role != "admin" && task.User_ID != userID {
-		return model.Tasks{}, errs.ErrNotAccess
+
+	// Распарсить description
+	err = json.Unmarshal(task.DescriptionRaw, &task.Description)
+	if err != nil {
+		logger.Error.Printf("[repository] GetTaskByID(): error unmarshaling description JSON: %s", err.Error())
+		return model.Tasks{}, err
 	}
-	return task, nil
+	return task, err
 }
 
 func DeleteTask(taskID, userID int, role string) error {
@@ -135,12 +369,34 @@ func CreateTask(t model.Tasks, role string, userID int) error {
 		return errs.ErrNotAccess
 	}
 
-	query := `
-		INSERT INTO tasks (user_id, title, description, done)
-		VALUES ($1, $2, $3, $4)
-	`
+	var dueInDays int
+	if t.DueInDays != nil {
+		dueInDays = *t.DueInDays
+	} else {
+		dueInDays = 1
+	}
 
-	_, err := db.GetDBConn().Exec(query, t.User_ID, t.Title, t.Description, t.Done)
+	t.DueDate = time.Now().AddDate(0, 0, dueInDays)
+
+	descJSON, err := json.Marshal(t.Description)
+	if err != nil {
+		return err
+	}
+
+	query := `
+        INSERT INTO tasks (user_id, title, description, done, due_date, due_in_days, priority)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `
+
+	_, err = db.GetDBConn().Exec(query,
+		t.User_ID,
+		t.Title,
+		descJSON,
+		t.Done,
+		t.DueDate,
+		dueInDays,
+		t.Priority,
+	)
 	if err != nil {
 		logger.Error.Printf("[repository] CreateTask(): error during creating task: %s", err.Error())
 		return TranslateError(err)
@@ -199,11 +455,12 @@ func SearchTask(search, role string, userID int) ([]model.Tasks, error) {
 				title, 
 				description, 
 				created_at,
+				priority,
 				due_date, 
 				done
 			FROM tasks
 			WHERE deleted_at IS NULL
-			  AND (title ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%')
+			  AND (title ILIKE '%' || $1 || '%' OR description::text ILIKE '%' || $1 || '%')
 			ORDER BY task_id ASC
 		`
 		args = append(args, search)
@@ -219,24 +476,26 @@ func SearchTask(search, role string, userID int) ([]model.Tasks, error) {
 				done
 			FROM tasks
 			WHERE deleted_at IS NULL AND user_id = $1
-			  AND (title ILIKE '%' || $2 || '%' OR description ILIKE '%' || $2 || '%')
-			ORDER BY task_id ASC
+			  AND (title ILIKE '%' || $2 || '%' OR description::text ILIKE '%' || $2 || '%')
+			ORDER BY task_id AS
 		`
 		args = append(args, userID, search)
 	} else {
 		return nil, errors.New("invalid role")
 	}
-
 	err = db.GetDBConn().Select(&tasks, query, args...)
-	if err != nil {
-		logger.Error.Printf("[repository] SearchTask(): error during searching tasks from database: %s", err.Error())
-		return nil, TranslateError(err)
+	for i := range tasks {
+		if err = json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description); err != nil {
+			logger.Error.Printf("[repository] SearchTask(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
 	}
 
 	return tasks, nil
 }
 
 func GetTasksByUserID(requestedUserID, currentUserID int, role string) ([]model.TaskWithUser, error) {
+	var err error
 	if role != "admin" && requestedUserID != currentUserID {
 		return nil, errs.ErrNotAccess
 	}
@@ -247,16 +506,90 @@ func GetTasksByUserID(requestedUserID, currentUserID int, role string) ([]model.
 			tasks.user_id,
 			tasks.title,
 			tasks.description,
-			users.username
+			users.username,
+		    tasks.done
 		FROM tasks
 		JOIN users ON tasks.user_id = users.id
 		WHERE tasks.deleted_at IS NULL AND tasks.user_id = $1
 	`
 
 	var tasks []model.TaskWithUser
-	err := db.GetDBConn().Select(&tasks, query, requestedUserID)
+	err = db.GetDBConn().Select(&tasks, query, requestedUserID)
+	for i := range tasks {
+		err = json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description)
+		if err != nil {
+			logger.Error.Printf("[repository] GetTasksByUserID(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
+	}
+
+	return tasks, nil
+}
+func GetTasksByPriority(role string, userID int) ([]model.Tasks, error) {
+	var (
+		tasks []model.Tasks
+		err   error
+		query string
+	)
+
+	if role == "admin" {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				due_date, 
+				priority,
+				done,
+				created_at,
+				updated_at
+			FROM tasks
+			WHERE deleted_at IS NULL AND done = false
+			ORDER BY 
+				CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					ELSE 3
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query)
+	} else {
+		query = `
+			SELECT 
+				task_id,
+				user_id,
+				title, 
+				description, 
+				created_at,
+				priority,
+				due_date, 
+				updated_at,
+				done
+			FROM tasks
+			WHERE deleted_at IS NULL AND user_id = $1 AND done = false
+			ORDER BY 
+				CASE LOWER(priority)
+					WHEN 'high' THEN 1
+					WHEN 'medium' THEN 2
+					ELSE 3
+				END ASC,
+				due_date ASC
+		`
+		err = db.GetDBConn().Select(&tasks, query, userID)
+	}
+
 	if err != nil {
-		return nil, TranslateError(err)
+		logger.Error.Printf("[repository] GetTasksByPriority(): error selecting tasks: %s", err.Error())
+		return nil, err
+	}
+
+	for i := range tasks {
+		if err := json.Unmarshal(tasks[i].DescriptionRaw, &tasks[i].Description); err != nil {
+			logger.Error.Printf("[repository] GetTasksByPriority(): error unmarshaling description JSON: %s", err.Error())
+			return nil, err
+		}
 	}
 
 	return tasks, nil
@@ -267,7 +600,7 @@ func CheckTaskExists(ID int) error {
 	query := `SELECT task_id FROM tasks WHERE task_id = $1`
 	err := db.GetDBConn().Get(&taskID, query, ID)
 	if err != nil {
-		return TranslateError(err) // Вернёт ErrNotFoundID, если нет
+		return TranslateError(err)
 	}
 	return nil
 }

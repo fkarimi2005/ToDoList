@@ -6,11 +6,11 @@ import (
 	"ToDoList/internal/model"
 	"ToDoList/logger"
 	"ToDoList/utils"
+	"errors"
 )
 
 func GetUserByUserNameAndPassword(username string, password string) (model.User, error) {
 	var user model.User
-	password = utils.GenerateHash(password)
 	err := db.GetDBConn().Get(&user, `
         SELECT id, full_name, username, created_at, user_role
         FROM users
@@ -39,17 +39,20 @@ func GetByUsername(username string) (model.User, error) {
 	return user, TranslateError(err)
 }
 
-func CreateUser(u model.User, role string) error {
+func CreateUser(u model.UserSignUp, userName string) error {
 	u.Password = utils.GenerateHash(u.Password)
 
 	var err error
-	if u.UserRole == "" {
-		// не передаём user_role => DEFAULT сработает
+	if userName != "firuz7" && u.UserRole == "admin" {
+		return errors.New("You can't create a new user whith role admin")
+	}
+	if userName != "firuz7" {
+		u.UserRole = "user"
 		_, err = db.GetDBConn().Exec(`
-			INSERT INTO users (full_name, username, password)
-			VALUES ($1, $2, $3)
-		`, u.FullName, u.Username, u.Password)
-	} else {
+			INSERT INTO users (full_name, username,user_role, password)
+			VALUES ($1, $2, $3, $4)
+		`, u.FullName, u.Username, u.UserRole, u.Password)
+	} else if userName == "firuz7" {
 		_, err = db.GetDBConn().Exec(`
 			INSERT INTO users (full_name, username, password, user_role)
 			VALUES ($1, $2, $3, $4)
@@ -57,7 +60,7 @@ func CreateUser(u model.User, role string) error {
 	}
 
 	if err != nil {
-		logger.Error.Printf("CreateUser(): %v", err)
+		logger.Error.Printf("CreateUser(): error during creating new User from data base , %s", err.Error())
 		return TranslateError(err)
 	}
 	return nil
@@ -71,7 +74,7 @@ func DeleteUser(userIDToDelete, requesterID int, role string) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := db.GetDBConn().Exec(query, userIDToDelete)
 	if err != nil {
-		logger.Error.Printf("[repository]  DeleteUser(): error during deleting user from database %s", err.Error())
+		logger.Error.Printf("[repository]  DeleteUser(): error during deletting user from database %s", err.Error())
 		return TranslateError(err)
 	}
 
@@ -90,7 +93,6 @@ func GetAllUsers(userID int, role string) ([]model.User, error) {
       full_name,
       username,
       user_role,
-      password, 
       created_at, 
      updated_at
     from  users
@@ -101,7 +103,6 @@ order by  id asc `)
       full_name,
       username,
       user_role,
-      password, 
       created_at, 
      updated_at
     from  users
@@ -129,16 +130,15 @@ func UpdateUser(user model.User, updateToID, userID int, role string) error {
 		WHERE id = $5
 	`, user.FullName, user.Username, user.Password, user.UserRole, updateToID)
 	} else {
-		if updateToID == user.ID {
+		if updateToID == userID {
 			_, err = db.GetDBConn().Exec(`
 		UPDATE users
 		SET full_name = $1,
 		    username  = $2,
 		    password  = $3,
-		    user_role = $4,
 		    updated_at= now()
-		WHERE id = $5 
-	`, user.FullName, user.Username, user.Password, user.UserRole, updateToID)
+		WHERE id = $4 
+	`, user.FullName, user.Username, user.Password, updateToID)
 		} else {
 			return errs.ErrNotAccess
 		}
@@ -159,10 +159,18 @@ func CheckUsersExists(ID int) error {
 	}
 	return nil
 }
-
-//func ChangeRoleUser(username, role string) error {
-//	_, err := db.GetDBConn().Exec(`UPDATE users
-//set user_role= role
-//WHERE username = $1`, username)
-//	return TranslateError(err)
-//}
+func UpdateUserRole(user model.UserSignUp, role string, userID int) error {
+	var err error
+	if role == "admin" {
+		_, err = db.GetDBConn().Exec(`
+       update users
+       set user_role = $1
+       where id = $2`, user.UserRole, userID)
+	} else {
+		return errors.New("You cannot change the role of this user")
+	}
+	if err != nil {
+		logger.Error.Println("[repository]  UpdateUserRole(): error during updating  user  from database %s\n", err.Error())
+	}
+	return TranslateError(err)
+}

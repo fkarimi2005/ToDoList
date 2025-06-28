@@ -3,7 +3,6 @@ package controller
 import (
 	"ToDoList/internal/errs"
 	"ToDoList/internal/model"
-	"ToDoList/internal/repository"
 	"ToDoList/internal/service"
 	"ToDoList/utils"
 	"github.com/gin-gonic/gin"
@@ -24,20 +23,16 @@ import (
 // @Failure       500 { object} model.ErrorResponse
 // @Router       /auth/sign-up [post]
 func SignUp(c *gin.Context) {
-	var u model.User
+	var u model.UserSignUp
 
 	if err := c.ShouldBindJSON(&u); err != nil {
 		HandleError(c, err)
 		return
 	}
-
-	creatorRole := strings.ToLower(c.GetString(userRole))
-
-	if err := service.CreateUser(u, creatorRole); err != nil {
-		HandleError(c, errs.ErrUserAlreadyExists)
+	if err := service.CreateUser(u, c.GetString(userNameCtx)); err != nil {
+		HandleError(c, err)
 		return
 	}
-
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User successfully registered",
 	})
@@ -60,8 +55,8 @@ func SignIn(c *gin.Context) {
 		HandleError(c, err)
 		return
 	}
-	u.Password = utils.GenerateHash(u.Password)
-	user, err := repository.GetUserByUserNameAndPassword(u.Username, u.Password)
+	//u.Password = utils.GenerateHash(u.Password)
+	user, err := service.GetUserByUserNameAndPassword(u.Username, u.Password)
 	if err != nil {
 		HandleError(c, errs.ErrIncorrectLoginOrPassword)
 		return
@@ -130,7 +125,7 @@ func GetAllUsers(c *gin.Context) {
 // @Failure      404 {object} model.ErrorResponse
 // @Failure       500 { object} model.ErrorResponse
 // @Security     BearerAuth
-// @Router       /api/users/{id} [patch]
+// @Router       /api/users/{id} [put]
 func UpdateUser(c *gin.Context) {
 	IDStr := c.Param("id")
 	ID, err := strconv.Atoi(IDStr)
@@ -162,4 +157,71 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+}
+
+// GetUserByUsername godoc
+// @Summary      Получить всех пользователей
+// @Description  Возвращает список всех пользователей (только для администратора)
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        username query string true "username users"
+// @Success      200 {array} model.User
+// @Failure      400 {object} model.ErrorResponse
+// @Failure      401 {object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      404 {object} model.ErrorResponse
+// @Failure       500 { object} model.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/users [get]
+func GetUserByUsername(c *gin.Context) {
+	username := c.Query("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "username is required"})
+		return
+	}
+	user, err := service.GetUserByUsername(username, c.GetString(userRole), c.GetInt(userIDCtx))
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, user)
+
+}
+
+// UpdateUserRole godoc
+// @Summary      Обновить пользователя
+// @Description  Обновляет данные пользователя по ID
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "ID пользователя"
+// @Param        input body model.UserSignUp true "Новые данные роля пользователя"
+// @Success      200 {object} model.User
+// @Failure      400 {object} model.ErrorResponse
+// @Failure      404 {object} model.ErrorResponse
+// @Failure       500 { object} model.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/users/{id} [patch]
+func UpdateUserRole(c *gin.Context) {
+	IDStr := c.Param("id")
+	ID, err := strconv.Atoi(IDStr)
+	if err != nil || ID < 0 {
+		HandleError(c, errs.ErrInvalidID)
+		return
+	}
+	userRole := strings.ToLower(c.GetString(userRole))
+	if userRole == "" {
+		c.JSON(400, gin.H{"message": "userRole is empty"})
+	}
+	var u model.UserSignUp
+	if err := c.ShouldBindJSON(&u); err != nil {
+		HandleError(c, err)
+		return
+	}
+	if err := service.UpdateUserRole(u, userRole, ID); err != nil {
+		HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "User successfully updated"})
 }

@@ -277,7 +277,7 @@ func SearchTask(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
-// GetTaskByUserID godoc
+// GetTasksByUserID godoc
 // @Summary      Получить задачу через userID
 // @Tags         tasks
 // @Accept       json
@@ -315,5 +315,90 @@ func GetTasksByUserID(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, tasks)
+}
+
+// ShowFilterTasks godoc
+// @Summary      Получить список задач
+// @Description  Возвращает все задачи текущего пользователя
+// @Tags         tasks
+// @Param        q query string true "status tasks:"
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} model.Tasks
+// @Failure       401 { object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Security     BearerAuth
+// @Router       /api/filter [get]
+func ShowFilterTasks(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Query parameter 'q' is missing"})
+		return
+	}
+	userID := c.GetInt(userIDCtx)
+	if userID == 0 {
+		HandleError(c, errs.ErrUserNotFound)
+		return
+	}
+	role := strings.ToLower(c.GetString(userRole))
+	if role == "" {
+		role = "user"
+	}
+	query = strings.ToLower(query)
+	switch query {
+	case "completed":
+		{
+			tasks, err := service.GetCompletedTasks(role, userID)
+			if err != nil {
+				HandleError(c, err)
+				return
+			}
+			c.JSON(http.StatusOK, tasks)
+		}
+	case "incompleted":
+		{
+			tasks, err := service.GetInCompletedTasks(role, userID)
+			if err != nil {
+				HandleError(c, err)
+				return
+			}
+			c.JSON(http.StatusOK, tasks)
+
+		}
+	case "pending":
+		{
+			tasks, err := service.GetPendingTasks(role, userID)
+			if err != nil {
+				HandleError(c, err)
+				return
+			}
+			c.JSON(http.StatusOK, tasks)
+		}
+	default:
+		c.JSON(400, gin.H{"message": "Bad Request"})
+
+	}
+}
+
+// FilterByPriority godoc
+// @Summary      Получить задачу через userID
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} model.Tasks
+// @Security     BearerAuth
+// @Failure       400 { object} model.ErrorResponse
+// @Failure       401 {object} model.ErrorResponse
+// @Failure      403 {object} model.ErrorResponse
+// @Failure      500 {object} model.ErrorResponse
+// @Router       /api/users/{id}/tasks [get]
+func FilterByPriority(c *gin.Context) {
+	tasks, err := service.GetTaskByPriority(c.GetString(userRole), c.GetInt(userIDCtx))
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, tasks)
 }

@@ -8,6 +8,11 @@ definitions:
   model.Tasks:
     properties:
       description:
+        items:
+          type: string
+        type: array
+      priority:
+        example: medium
         type: string
       title:
         type: string
@@ -22,9 +27,6 @@ definitions:
     properties:
       full_name:
         example: Firuz Karimzoda
-        type: string
-      password:
-        example: your_password
         type: string
       user_role:
         example: user
@@ -49,6 +51,43 @@ info:
   title: ToDoList API
   version: "1.0"
 paths:
+  /api/filter:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает все задачи текущего пользователя
+      parameters:
+      - description: 'status tasks:'
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Tasks'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить список задач
+      tags:
+      - tasks
   /api/tasks:
     get:
       consumes:
@@ -283,6 +322,12 @@ paths:
       consumes:
       - application/json
       description: Возвращает список всех пользователей (только для администратора)
+      parameters:
+      - description: username users
+        in: query
+        name: username
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -362,12 +407,6 @@ paths:
     get:
       consumes:
       - application/json
-      parameters:
-      - description: ID задачи
-        in: path
-        name: id
-        required: true
-        type: integer
       produces:
       - application/json
       responses:

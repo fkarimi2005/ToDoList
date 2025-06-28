@@ -38,8 +38,6 @@ func HandleError(c *gin.Context, err error) {
 	case errors.Is(err, errs.ErrSomethingWentWrong):
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-
-	// 🟡 добавь этот блок на случай других ошибок
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unexpected error: " + err.Error()})
 		return

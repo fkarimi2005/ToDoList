@@ -5,26 +5,25 @@ import (
 	"ToDoList/internal/model"
 	"ToDoList/internal/repository"
 	"ToDoList/utils"
-
 	"errors"
 	"fmt"
 )
 
-func CreateUser(u model.User, role string) error {
-
+func CreateUser(u model.UserSignUp, userName string) error {
 	_, err := repository.GetByUsername(u.Username)
 	if err == nil {
-
 		return errs.ErrUserAlreadyExists
 	}
+
 	u.Password = utils.GenerateHash(u.Password)
 
-	if err := repository.CreateUser(u, role); err != nil {
+	if err = repository.CreateUser(u, userName); err != nil {
 		return fmt.Errorf("could not create user: %w", err)
 	}
 
 	return nil
 }
+
 func GetAllUsers(userID int, role string) ([]model.User, error) {
 	users, err := repository.GetAllUsers(userID, role)
 	if err != nil {
@@ -51,7 +50,7 @@ func DeleteUsers(UserID, requestID int, role string) error {
 	}
 	return nil
 }
-func GetUserByUsernameAndPassword(username string, password string) (user model.User, err error) {
+func GetUserByUserNameAndPassword(username string, password string) (user model.User, err error) {
 	password = utils.GenerateHash(password)
 
 	user, err = repository.GetUserByUserNameAndPassword(username, password)
@@ -64,15 +63,19 @@ func GetUserByUsernameAndPassword(username string, password string) (user model.
 	return user, nil
 }
 
-//func ChangeRoleUser(username, role string) error {
-//	_, err := repository.GetByUsername(username)
-//	if err != nil {
-//		return err
-//	}
-//	err = repository.ChangeRoleUser(username, role)
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//
-//}
+func GetUserByUsername(username string, role string, currentUserID int) (model.User, error) {
+	user, err := repository.GetUserByUsername(username, role, currentUserID)
+	if err != nil {
+		if errors.Is(err, errs.ErrUserNotFound) {
+			return model.User{}, err
+		}
+	}
+	return user, nil
+}
+func UpdateUserRole(user model.UserSignUp, role string, userID int) error {
+	err := repository.UpdateUserRole(user, role, userID)
+	if err != nil {
+		return fmt.Errorf("could not update user role: %w", err)
+	}
+	return nil
+}

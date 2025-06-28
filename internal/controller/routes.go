@@ -10,7 +10,6 @@ import (
 func RunServer() error {
 	router := gin.Default()
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	router.GET("/", Ping)
 	authG := router.Group("/auth")
 	{
@@ -22,7 +21,9 @@ func RunServer() error {
 	userG := apiG.Group("/users")
 	{
 		userG.GET("", GetAllUsers)
-		userG.PATCH("/:id", UpdateUser)
+		userG.GET("/", GetUserByUsername)
+		userG.PUT("/:id", UpdateUser)
+		userG.PATCH("/:id", UpdateUserRole)
 		userG.GET("/:id/tasks", GetTasksByUserID)
 
 	}
@@ -30,16 +31,18 @@ func RunServer() error {
 	taskG := apiG.Group("/tasks")
 
 	{
-
 		taskG.GET("", ShowTask)
 		taskG.GET("/", SearchTask)
 		taskG.GET("/:id", GetById)
 		taskG.DELETE("/:id/", DeleteByID)
-		//taskG.PATCH("/:id", UpStatusTask)
 		taskG.POST("", AddTask)
 		taskG.PUT("/:id", UpdateTask)
 
 	}
+	FilterG := apiG.Group("/filter")
+	{
+		FilterG.GET("", FilterByPriority)
+		FilterG.GET("/", ShowFilterTasks)
+	}
 	return router.Run(":8089")
-
 }

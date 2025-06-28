@@ -1,6 +1,6 @@
 {
   "auth_params": {
-    "jwt_ttl_minutes": 15
+    "jwt_ttl_minutes": 60
   },
   "log_params": {
     "log_directory": "logs",
