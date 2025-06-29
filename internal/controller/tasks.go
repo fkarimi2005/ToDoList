@@ -5,7 +5,6 @@ import (
 	"ToDoList/internal/model"
 	"ToDoList/internal/service"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -110,44 +109,19 @@ func DeleteByID(c *gin.Context) {
 	}
 
 	role := strings.ToLower(c.GetString(userRole))
-	if role == "" {
-		role = "user"
-	}
-
 	IDStr := c.Param("id")
 	ID, err := strconv.Atoi(IDStr)
 	if err != nil || ID < 0 {
 		HandleError(c, errs.ErrInvalidID)
 		return
 	}
-
-	queryChoice := strings.ToLower(c.Query("choice"))
-	if queryChoice == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "query parameter 'choice' is required (user or task)",
-		})
+	err = service.DeleteTask(ID, userID, role)
+	if err != nil {
+		HandleError(c, err)
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"message": "Task has been successfully deleted"})
 
-	switch queryChoice {
-	case "user":
-		err := service.DeleteUsers(ID, userID, role)
-		if err != nil {
-			fmt.Printf("DeleteUsers error: %v\n", err) // debug log
-			HandleError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "User has been deleted"})
-	case "task":
-		err := service.DeleteTask(ID, userID, role)
-		if err != nil {
-			HandleError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"message": "Task has been successfully deleted"})
-	default:
-		HandleError(c, errs.ErrInvalidOperationType)
-	}
 }
 
 // AddTask godoc
@@ -179,6 +153,10 @@ func AddTask(c *gin.Context) {
 	var task model.Tasks
 	if err := c.ShouldBindJSON(&task); err != nil {
 		HandleError(c, errs.ErrValidationFailed)
+		return
+	}
+	if role == "user" && task.User_ID != userID {
+		HandleError(c, errs.ErrForbidden)
 		return
 	}
 
@@ -219,10 +197,6 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	role := strings.ToLower(c.GetString(userRole))
-	if role == "" {
-		role = "user"
-	}
-
 	var d model.DoneTasks
 	if err := c.ShouldBindJSON(&d); err != nil {
 		HandleError(c, errs.ErrValidationFailed)
@@ -230,7 +204,7 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	if err := service.UpdateTask(d, ID, userID, role); err != nil {
-		HandleError(c, errs.ErrNotAccess)
+		HandleError(c, err)
 		return
 	}
 

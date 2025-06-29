@@ -5,6 +5,7 @@ import (
 	"ToDoList/internal/model"
 	"ToDoList/internal/service"
 	"ToDoList/utils"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -55,7 +56,7 @@ func SignIn(c *gin.Context) {
 		HandleError(c, err)
 		return
 	}
-	//u.Password = utils.GenerateHash(u.Password)
+	u.Password = utils.GenerateHash(u.Password)
 	user, err := service.GetUserByUserNameAndPassword(u.Username, u.Password)
 	if err != nil {
 		HandleError(c, errs.ErrIncorrectLoginOrPassword)
@@ -204,24 +205,52 @@ func GetUserByUsername(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/users/{id} [patch]
 func UpdateUserRole(c *gin.Context) {
+	currentUserRole := strings.ToLower(c.GetString(userRole))
+	if currentUserRole != "superadmin" {
+		HandleError(c, errors.New("you are not authorized to change roles"))
+		return
+	}
+
+	IDStr := c.Param("id")
+	targetUserID, err := strconv.Atoi(IDStr)
+	if err != nil || targetUserID <= 0 {
+		HandleError(c, errs.ErrInvalidID)
+		return
+	}
+
+	var req model.UserSignUp
+	if err := c.ShouldBindJSON(&req); err != nil {
+		HandleError(c, errs.ErrValidationFailed)
+		return
+	}
+	
+	if err := service.UpdateUserRole(req.UserRole, targetUserID, currentUserRole); err != nil {
+		HandleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User role successfully updated"})
+}
+
+func DeleteUserByID(c *gin.Context) {
+	userID := c.GetInt(userIDCtx)
+	if userID == 0 {
+		HandleError(c, errs.ErrUserNotFound)
+		return
+	}
+
+	role := strings.ToLower(c.GetString(userRole))
 	IDStr := c.Param("id")
 	ID, err := strconv.Atoi(IDStr)
 	if err != nil || ID < 0 {
 		HandleError(c, errs.ErrInvalidID)
 		return
 	}
-	userRole := strings.ToLower(c.GetString(userRole))
-	if userRole == "" {
-		c.JSON(400, gin.H{"message": "userRole is empty"})
-	}
-	var u model.UserSignUp
-	if err := c.ShouldBindJSON(&u); err != nil {
+	err = service.DeleteUsers(userID, ID, role)
+	if err != nil {
 		HandleError(c, err)
 		return
 	}
-	if err := service.UpdateUserRole(u, userRole, ID); err != nil {
-		HandleError(c, err)
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "User successfully updated"})
+	c.JSON(http.StatusOK, gin.H{"message": "User has been successfully deleted"})
+
 }

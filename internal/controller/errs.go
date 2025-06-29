@@ -24,7 +24,7 @@ func HandleError(c *gin.Context, err error) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 
-	case errors.Is(err, errs.ErrNoPermissionsToCreateTask):
+	case errors.Is(err, errs.ErrNoPermissionsToCreateTask), errors.Is(err, errs.ErrForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 

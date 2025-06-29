@@ -4,7 +4,6 @@ import (
 	"ToDoList/internal/errs"
 	"ToDoList/internal/model"
 	"ToDoList/internal/repository"
-	"ToDoList/utils"
 	"errors"
 	"fmt"
 )
@@ -14,8 +13,6 @@ func CreateUser(u model.UserSignUp, userName string) error {
 	if err == nil {
 		return errs.ErrUserAlreadyExists
 	}
-
-	u.Password = utils.GenerateHash(u.Password)
 
 	if err = repository.CreateUser(u, userName); err != nil {
 		return fmt.Errorf("could not create user: %w", err)
@@ -31,27 +28,26 @@ func GetAllUsers(userID int, role string) ([]model.User, error) {
 	}
 	return users, nil
 }
-func UpdateUser(u model.User, upID, userID int, role string) error {
+func UpdateUser(u model.User, ID, userID int, role string) error {
 
-	if err := repository.UpdateUser(u, upID, userID, role); err != nil {
+	if err := repository.UpdateUser(u, ID, userID, role); err != nil {
 		return fmt.Errorf("could not update user: %w", err)
 	}
 
 	return nil
 }
-func DeleteUsers(UserID, requestID int, role string) error {
+func DeleteUsers(UserID, ID int, role string) error {
 	err := repository.CheckUsersExists(UserID)
 	if err != nil {
 		return err
 	}
-	err = repository.DeleteUser(UserID, requestID, role)
+	err = repository.DeleteUser(UserID, ID, role)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func GetUserByUserNameAndPassword(username string, password string) (user model.User, err error) {
-	password = utils.GenerateHash(password)
 
 	user, err = repository.GetUserByUserNameAndPassword(username, password)
 	if err != nil {
@@ -72,10 +68,10 @@ func GetUserByUsername(username string, role string, currentUserID int) (model.U
 	}
 	return user, nil
 }
-func UpdateUserRole(user model.UserSignUp, role string, userID int) error {
-	err := repository.UpdateUserRole(user, role, userID)
-	if err != nil {
-		return fmt.Errorf("could not update user role: %w", err)
+func UpdateUserRole(newRole string, targetUserID int, currentUserRole string) error {
+	if currentUserRole != "superadmin" {
+		return errors.New("you are not authorized to change roles")
 	}
-	return nil
+
+	return repository.UpdateUserRole(newRole, targetUserID)
 }

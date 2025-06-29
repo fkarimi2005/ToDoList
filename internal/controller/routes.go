@@ -25,6 +25,7 @@ func RunServer() error {
 		userG.PUT("/:id", UpdateUser)
 		userG.PATCH("/:id", UpdateUserRole)
 		userG.GET("/:id/tasks", GetTasksByUserID)
+		userG.DELETE("/:id", DeleteUserByID)
 
 	}
 
@@ -34,7 +35,7 @@ func RunServer() error {
 		taskG.GET("", ShowTask)
 		taskG.GET("/", SearchTask)
 		taskG.GET("/:id", GetById)
-		taskG.DELETE("/:id/", DeleteByID)
+		taskG.DELETE("/:id", DeleteByID)
 		taskG.POST("", AddTask)
 		taskG.PUT("/:id", UpdateTask)
 

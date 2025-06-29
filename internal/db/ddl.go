@@ -69,7 +69,7 @@ func SeedUser() error {
 	_, err = GetDBConn().Exec(`
 		INSERT INTO users (full_name, username, password, user_role)
 		VALUES ($1, $2, $3, $4)
-	`, "Firuz Karimzoda", "firuz7", password, "admin")
+	`, "Firuz Karimzoda", "firuz7", password, "superadmin")
 	if err != nil {
 		return fmt.Errorf("could not insert user: %w", err)
 	}

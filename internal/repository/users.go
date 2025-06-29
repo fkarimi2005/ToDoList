@@ -65,16 +65,24 @@ func CreateUser(u model.UserSignUp, userName string) error {
 	}
 	return nil
 }
-func DeleteUser(userIDToDelete, requesterID int, role string) error {
-
-	if role != "admin" && userIDToDelete != requesterID {
-		return errs.ErrNotAccess
+func DeleteUser(userID, ID int, role string) error {
+	if role == "superadmin" && userID == ID {
+		return errors.New("You can't delete yourself")
 	}
 
-	query := `DELETE FROM users WHERE id = $1`
-	_, err := db.GetDBConn().Exec(query, userIDToDelete)
+	if role == "user" && userID != ID {
+		return errs.ErrForbidden
+	}
+	_, err := db.GetDBConn().Exec("DELETE FROM tasks WHERE user_id = $1", ID)
 	if err != nil {
-		logger.Error.Printf("[repository]  DeleteUser(): error during deletting user from database %s", err.Error())
+		logger.Error.Printf("[repository] DeleteUser(): error deleting tasks: %s", err.Error())
+		return TranslateError(err)
+	}
+	query := `DELETE FROM users WHERE id = $1`
+	_, err = db.GetDBConn().Exec(query, ID)
+
+	if err != nil {
+		logger.Error.Printf("[repository] DeleteUser(): error during deleting user from database %s", err.Error())
 		return TranslateError(err)
 	}
 
@@ -87,7 +95,7 @@ func GetAllUsers(userID int, role string) ([]model.User, error) {
 		err error
 	)
 
-	if role == "admin" {
+	if role == "admin" || role == "superadmin" {
 		err = db.GetDBConn().Select(&users, `SELECT 
        id, 
       full_name,
@@ -116,40 +124,46 @@ order by  id asc `, userID)
 
 	return users, TranslateError(err)
 }
-func UpdateUser(user model.User, updateToID, userID int, role string) error {
-	user.Password = utils.GenerateHash(user.Password)
-	var err error
-	if role == "admin" {
-		_, err = db.GetDBConn().Exec(`
-		UPDATE users
-		SET full_name = $1,
-		    username  = $2,
-		    password  = $3,
-		    user_role = $4,
-		    updated_at= now()
-		WHERE id = $5
-	`, user.FullName, user.Username, user.Password, user.UserRole, updateToID)
-	} else {
-		if updateToID == userID {
-			_, err = db.GetDBConn().Exec(`
-		UPDATE users
-		SET full_name = $1,
-		    username  = $2,
-		    password  = $3,
-		    updated_at= now()
-		WHERE id = $4 
-	`, user.FullName, user.Username, user.Password, updateToID)
-		} else {
-			return errs.ErrNotAccess
+func UpdateUser(user model.User, ID, userID int, role string) error {
+	if role == "superadmin" {
+		role = "admin"
+	}
+
+	if role == "user" {
+		if userID != ID {
+			return errs.ErrForbidden
 		}
 	}
+	err := CheckUsersExists(ID)
 	if err != nil {
-		logger.Error.Printf("[repository]  UpdateUser(): error during updating  user  from database %s", err.Error())
+		return errs.ErrUserNotFound
+	}
+	user.Password = utils.GenerateHash(user.Password)
 
+	query := `
+		UPDATE users
+		SET full_name = $1,
+			username  = $2,
+			password  = $3,
+			updated_at= now()
+		WHERE id = $4
+	`
+
+	_, err = db.GetDBConn().Exec(query,
+		user.FullName,
+		user.Username,
+		user.Password,
+		ID,
+	)
+
+	if err != nil {
+		logger.Error.Printf("[repository] UpdateUser(): error during updating user: %s", err.Error())
+		return TranslateError(err)
 	}
 
-	return TranslateError(err)
+	return nil
 }
+
 func CheckUsersExists(ID int) error {
 	var userID int
 	query := `SELECT id FROM users WHERE id = $1`
@@ -159,18 +173,20 @@ func CheckUsersExists(ID int) error {
 	}
 	return nil
 }
-func UpdateUserRole(user model.UserSignUp, role string, userID int) error {
-	var err error
-	if role == "admin" {
-		_, err = db.GetDBConn().Exec(`
-       update users
-       set user_role = $1
-       where id = $2`, user.UserRole, userID)
-	} else {
-		return errors.New("You cannot change the role of this user")
-	}
+func UpdateUserRole(newRole string, targetUserID int) error {
+	err := CheckUsersExists(targetUserID)
 	if err != nil {
-		logger.Error.Println("[repository]  UpdateUserRole(): error during updating  user  from database %s\n", err.Error())
+		return errs.ErrUserNotFound
 	}
-	return TranslateError(err)
+	_, err = db.GetDBConn().Exec(`
+		UPDATE users
+		SET user_role = $1,
+		updated_at=now()
+		WHERE id = $2
+	`, newRole, targetUserID)
+	if err != nil {
+		logger.Error.Printf("[repository] UpdateUserRole(): error updating user role: %s", err.Error())
+		return TranslateError(err)
+	}
+	return nil
 }

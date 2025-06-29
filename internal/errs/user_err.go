@@ -14,6 +14,7 @@ var (
 	ErrNoPermissionsToCreateTask = errors.New("no permissions to create task this account")
 	ErrTaskNotFound              = errors.New("task not found")
 	ErrIncorrectLoginOrPassword  = errors.New("incorrect  login or password ")
-	ErrNotFoud                   = errors.New("not foud")
+	ErrNotFoud                   = errors.New("not found")
 	ErrNotAccess                 = errors.New("you are not authorized to access this resource")
+	ErrForbidden                 = errors.New("forbidden")
 )
